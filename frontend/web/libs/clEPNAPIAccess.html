@@ -1,0 +1,668 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<title>ePN API</title>
+<style>
+body {
+	background-color: #333333;
+	padding: 0% 10%;
+	font-size: 18px;
+}
+h1 {
+	font-size: 28px;
+}
+h2 {
+	font-size: 24px;
+}
+pre {
+	color: #334152;
+	font-size: 12px;
+	font-weight: normal;
+	border-left: 3px solid #334152;
+	background-color: #D5EDFF;
+	overflow: auto;
+	padding-left: 8px;
+	padding-right: 8px;
+	padding-bottom: 5px;
+	padding-top: 5px;
+	margin-left: 8px;
+}
+table {
+	font-size: 18px;
+	font-weight: normal;
+	border: 1px solid #000000;
+	border-collapse: collapse;
+	padding: 5px;
+}
+tr {
+	border: 1px solid #000000;
+}
+th {
+	border: 1px solid #000000;
+	font-weight: bold;
+	font-size: 20px;
+	padding: 5px;
+}
+td {
+	border: 1px solid #000000;
+	padding: 5px;
+}
+.main {
+	background-color: #EEEEEE;
+	padding: 1%;
+}
+</style>
+</head>
+<body>
+	<div class="main">
+		<h1>ePN API для разработчиков</h1>
+		<p>Если вы не нашли здесь ответ на свой вопрос, то обратитесь за помощью в саппорт ePN.</p>
+		<hr align="left" />
+		<h2>Описание API</h2>
+		<p>Все запросы к API отправляются в виде POST-запроса по протоколу HTTP на URL-адрес <a href="http://api.epn.bz/json">http://api.epn.bz/json</a>. Параметры запроса передаются в виде JSON-строки как данные RAW POST DATA. Ответ отдаётся так же в формате JSON.</p>
+		<p>Структура запроса имеет вид:</p>
+<pre>
+	{
+		user_api_key = $your_api_key
+		user_hash = $your_deep_link_hash
+		api_version = $client_library_version
+		requests = $requests_to_process
+	}
+</pre>
+		<p>Все параметры обязательны. Данные 'user_api_key' и 'user_hash' берутся в личном кабинете партнёрской программы (первый в профиле пользователя, а второй - в списке креативов), 'api_version' описывает версию клиентской библиотеки (текущее описание соответствует версии &quot;2&quot;).</p>
+		<p>Структура $requests_to_process содержит список запросов, которые надо обработать в пакетном режиме и имеет вид:</p>
+<pre>
+	{
+		$req_name_1 = $req_data_1
+		$req_name_2 = $req_data_2
+		// ... //
+		$req_name_n = $req_data_n
+	}
+</pre>
+		<p>Таким образом, при отправке пакета для каждого запроса нужно указать уникальное имя блока, а в возвращаемом результате искать необходимые данные по этому имени. Каждое описание запроса имеет вид:</p>
+<pre>
+	{
+		action = $action
+		$param_1 = $value_1
+		$param_2 = $value_2
+		// ... //
+		$param_n = $value_n
+	}
+</pre>
+		<p>Список доступных параметров зависит от значения 'action'. Параметры, которые не поддерживаются для данного действия 'action', будут просто проигнорированы.</p>
+		<p>Возможные значения 'action':</p>
+		<ul>
+			<li>list_categories</li>
+			<li>offer_info</li>
+			<li>search</li>
+			<li>count_for_categories</li>
+			<li>list_currencies</li>
+			<li>top_monthly</li>
+		</ul>
+		<h2>Возвращаемый результат</h2>
+		<p>Структура результата имеет вид:</p>
+<pre>
+	{
+		identified_as = vasya
+		error = some error
+		results = {
+			req_name_1 = {
+				// data 1 //
+			}
+			req_name_2 = {
+				// data 2 //
+			}
+			// ... //
+			req_name_n = {
+				// data n //
+			}
+		}
+	}
+</pre>
+	<p>Здесь:</p>
+	<ul>
+		<li><b>identified_as</b>: имя пользователя, чей ключ используется для доступа к API. Присутствует только в случае успешной авторизации.</li>
+		<li><b>error</b>: сообщение об ошибке. Присутствует если не подошёл 'user_api_key' или 'user_hash'.</li>
+		<li><b>results</b>: массив результатов. В случае проблем с авторизацией он будет пуст.</li>
+	</ul>
+	<p>Таким образом после получения отклика надо убедиться, что в нём отсутствует поле 'error' и присутствует поле 'identified_as'. После этого можно приступать к разбору поля 'results'.</p>
+	<p>Поле 'results' является ассоциативным массивом. В качестве ключей используются имена запросов из 'requests', а в качестве значений - результат выполнения соответствующего запроса.</p>
+	<p>Рассмотрим подробнее параметры запросов и возможные ответы:</p>
+	<h2>action = list_categories</h2>
+	<p>Запрос 'list_categories' возвращает список категорий и их идентификаторов. Он имеет только один параметр: 'lang', с помощью которого можно передать двухбуквенный код языка.</p>
+	<p>В настоящий момент поддерживаются значения 'en' и 'ru'. Любое другое значение, равно как и отсутствие параметра расценивается как 'en'.</p>
+	<p>Результат выглядит примерно так:</p>
+<pre>
+	{
+		categories = {
+			{
+				id = 2
+				title = Food
+			}
+			
+			{
+				id = 6
+				title = Home Appliances
+			}
+			
+			{
+				id = 1501
+				title = Baby Products
+			}
+		}
+	}
+</pre>
+	<h2>action = offer_info</h2>
+	<p>Запрос &quot;offer_info&quot; позволяет получить информацию о товаре по идентификатору и коду языа. Единственный обязательный параметр - 'id'. Необязательные параметры - 'lang' и 'currency'. Если 'lang' не указан то считается что передано значение 'en'. Если не указан 'currency' то подразумевается 'USD'. Допустимо передавать несколько валют, перечисленных через запятую. Пример запроса:</p>
+<pre>
+	{
+		action = offer_info
+		lang = en
+		id = 2164021
+		currency = RUR,USD
+	}
+</pre>
+	<p>В случае если такой товар не существует или больше не продаётся, ответ будет иметь вид:</p>
+<pre>
+	{
+		error = Offer not found
+	}
+</pre>
+	<p>В случае же успеха ответ будет такой:</p>
+<pre>
+	{
+		offer = {
+			id = 2164021
+			id_category = 509
+			name = Samsung Galaxy S3 Stand and Spare Battery Charger
+			picture = http://i00.i.aliimg.com/wsphoto/v0/861977540/Samsung-Galaxy-S3-Stand-and-Spare-Battery-Charger.jpg
+			price = 1135.58
+			currency = RUR
+			commission_rate = 915
+			description = Best Samsung Galaxy S3 Charger
+			url = http://epnredirect.ru/redirect/goods/d73d3c21b691d24c7f8265cb0d9a426d/2164021
+			store_id = 123654
+			store_title = MegaStorCompany LLC
+			prices = {
+				RUR = 915
+				USD = 12.5
+			}
+		}
+	}
+</pre>
+	<h2>action = search</h2>
+	<p>Это действие самое сложное, имеет большое количество параметров и с его помощью можно реализовать большое количество функций.</p>
+	<p>Сводная таблица параметров</p>
+	<table>
+		<tr>
+			<th>Параметр</th>
+			<th>Обязателен</th>
+			<th>Возможные значения</th>
+			<th>Значение по умолчанию</th>
+		</tr>
+		<tr>
+			<td>query</td>
+			<td>нет</td>
+			<td>произвольный поисковый запрос в виде текстовой строки.</td>
+			<td>пустая строка</td>
+		</tr>
+		<tr>
+			<td>orderby</td>
+			<td>нет</td>
+			<td>поле сортировки
+				<ul>
+					<li>пустая строка (по релевантности)</li>
+					<li>rand (в случайном порядке)</li>
+					<li>price (по цене)</li>
+					<li>commission_rate (по комиссии)</li>
+					<li>added_at (по дате добавления)</li>
+					<li>orders_count (по количеству заказов за последние 30 дней продаж)</li>
+				</ul>
+			</td>
+			<td>пустая строка (по релевантности)</td>
+		</tr>
+		<tr>
+			<td>order_direction</td>
+			<td>нет</td>
+			<td>направление сортировки:
+				<ul>
+					<li>desc (по убыванию)</li>
+					<li>asc (по возрастанию)</li>
+				</ul>
+			</td>
+			<td>desc</td>
+		</tr>
+		<tr>
+			<td>limit</td>
+			<td>нет</td>
+			<td>количество результатов в отклике.</td>
+			<td>10</td>
+		</tr>
+		<tr>
+			<td>offset</td>
+			<td>нет</td>
+			<td>сдвиг относительно начала.</td>
+			<td>0</td>
+		</tr>
+		<tr>
+			<td>category</td>
+			<td>нет</td>
+			<td>список идентификаторов категорий через запятую (например 2,6,1501) либо пустая строка.</td>
+			<td>пустая строка (отсутствие фильтра по категориям).</td>
+		</tr>
+		<tr>
+			<td>store</td>
+			<td>нет</td>
+			<td>список идентификаторов продавцов через запятую (например 2,6,1501) либо пустая строка.</td>
+			<td>пустая строка (отсутствие фильтра по продавцам).</td>
+		</tr>
+		<tr>
+			<td>price_min</td>
+			<td>нет</td>
+			<td>минимальная цена (в USD), которая необходима (включительно).</td>
+			<td>0.0</td>
+		</tr>
+		<tr>
+			<td>price_max</td>
+			<td>нет</td>
+			<td>максимальная цена (в USD), которая необходима (включительно).</td>
+			<td>1000000.0</td>
+		</tr>
+		<tr>
+			<td>lang</td>
+			<td>нет</td>
+			<td>язык описаний товаров. на момент написания документации возможны значения "ru" и "en".</td>
+			<td>en</td>
+		</tr>
+		<tr>
+			<td>currency</td>
+			<td>нет</td>
+			<td>Валюта, в которой будет передаваться информация о ценах. В настоящий момент возможны значения: RUR, USD, EUR, UAH, KZT, BYR. Допустимо перечислить несколько валют через запятую.</td>
+			<td>USD</td>
+		</tr>
+	</table>
+	<p>В качестве результат всегда возвращаются поля 'offers' и 'total_found'. Поле 'total_found' содержит общее количество результатов (без учёта 'limit' и 'offset').</p>
+	<p>Поле 'offers' содержит массив элементов вида:</p>
+<pre>
+	{
+		id = 2164021
+		id_category = 509
+		name = Samsung Galaxy S3 Stand and Spare Battery Charger
+		picture = http://i00.i.aliimg.com/wsphoto/v0/861977540/Samsung-Galaxy-S3-Stand-and-Spare-Battery-Charger.jpg
+		all_images = {
+				http://i00.i.aliimg.com/wsphoto/v0/861977540/Samsung-Galaxy-S3-Stand-and-Spare-Battery-Charger.jpg
+				http://i00.i.aliimg.com/wsphoto/v0/861977540/Samsung-Galaxy-S3-Stand-and-Spare-Battery-Charger-2.jpg
+				http://i00.i.aliimg.com/wsphoto/v0/861977540/Samsung-Galaxy-S3-Stand-and-Spare-Battery-Charger-3.jpg
+			}
+		price = 18.39
+		currency = USD
+		commission_rate = 12.5
+		description = Best Samsung Galaxy S3 Charger
+		url = http://epnredirect.ru/redirect/goods/d73d3c21b691d24c7f8265cb0d9a426d/2164021
+		store_id = 123654
+		store_title = MegaStorCompany LLC
+		prices = {
+			USD = 12.5
+			RUR = 912.3
+		}
+	}
+</pre>
+	<p>Как уже было сказано выше, с помощью action=search можно реализовать большое количество различных функций. Рассмотрим примеры:</p>
+	<p>Пять случайных товаров:</p>
+<pre>
+	{
+		orderby = rand
+		limit = 5
+	}
+</pre>
+	<p>Просмотр товаров в категории:</p>
+<pre>
+	{
+		orderby = added_at
+		order_direction = desc
+		category = 2
+		limit = $items_per_page
+		offset = ($page - 1) * $items_per_page
+	}
+</pre>
+	<p>Поиск товаров:</p>
+<pre>
+	{
+		query = $query
+		limit = $items_per_page
+		offset = ($page - 1) * $items_per_page
+	}
+</pre>
+	<p>Пять самых дешёвых товаров:</p>
+<pre>
+	{
+		orderby = price
+		order_direction = asc
+		limit = 5
+	}
+</pre>
+	<h2>action = count_for_categories</h2>
+	<p>Полезное в ряде случаев действие. Позволяет узнать количество товаров в категориях, соответствующее определённым критериям. Список параметров полностью аналогичен списку параметров действия &quot;search&quot; с одним исключением: параметры &quot;category&quot;, &quot;limit&quot;, &quot;offset&quot;, &quot;currency&quot; - игнорируются.</p>
+	<p>В качестве ответа возвращается ассоциативный массив (хэш), в котором в качестве ключей указываются идентификаторы категорий, а в качестве значений - количество товаров.</p>
+	<p>Пример ответа:</p>
+<pre>
+	{
+		200005271 = 207
+		1524 = 21
+		1509 = 25
+		509 = 1
+		3 = 10
+	}
+</pre>
+	<h2>action = list_currencies</h2>
+	<p>Позволяет получить список поддерживаемых валют и их описаний. Не содержит параметров. Пример ответа:</p>
+<pre>
+	{
+		currencies = {
+			USD = US Dollar
+			EUR = Euro
+			UAH = Ukrainian Hryvnia
+			BYR = Belarussian Ruble
+			KZT = Kazakh Tenge
+			CNY = China Yuan
+			RUR = Russian Ruble
+		}
+	}
+</pre>
+	<h2>action = top_monthly</h2>
+	<p>Позволяет получить &quot;топы&quot; товров за прошедший месяц с сортировкой по комиссии (от максимальной и &quot;вниз&quot;) или продажам.</p>
+	<table>
+		<tr>
+			<th>Параметр</th>
+			<th>Обязателен</th>
+			<th>Возможные значения</th>
+			<th>Значение по умолчанию</th>
+		</tr>
+		<tr>
+			<td>orderby</td>
+			<td>нет</td>
+			<td>
+				<ul>
+					<li><b>sales</b> - сортировка по продажам.</li>
+					<li><b>commission</b> - сортировка по комиссии.</li>
+				</ul>
+			</td>
+			<td>sales</td>
+		</tr>
+		<tr>
+			<td>category</td>
+			<td>нет</td>
+			<td>список идентификаторов категорий через запятую (например 2,6,1501) либо пустая строка.</td>
+			<td>пустая строка (отсутствие фильтра по категориям).</td>
+		</tr>
+		<tr>
+			<td>lang</td>
+			<td>нет</td>
+			<td>язык описаний товаров. на момент написания документации возможны значения "ru" и "en".</td>
+			<td>en</td>
+		</tr>
+		<tr>
+			<td>currency</td>
+			<td>нет</td>
+			<td>Валюта, в которой будет передаваться информация о ценах. В настоящий момент возможны значения: RUR, USD, EUR, UAH, KZT, BYR. Допустимо перечислять несколько значений через запятую.</td>
+			<td>USD</td>
+		</tr>
+	</table>
+	<p>В качестве результат всегда возвращается поле 'offers', являющееся массивом из ста элементов вида:</p>
+<pre>
+	{
+		id = 32269721105
+		id_category = 44
+		name = Mini Mirror Surface Clip Mp3 Sport With TF-Card Slot Suppot Up To 8GB New Free shippingFree Shipping
+		price = 1.32
+		currency = USD
+		product_id = 32269721105
+		description = Mini Mirror Surface Clip Mp3 Sport With TF-Card Slot
+		lang = en
+		picture = http://i01.i.aliimg.com/wsphoto/v0/32269721105_1/Mini-Mirror-Surface-Clip-Mp3-Sport-With-TF-Card-Slot-Suppot-Up-To-8GB-New-Free.jpg
+		all_images = {
+			http://i01.i.aliimg.com/wsphoto/v0/32269721105_1/Mini-Mirror-Surface-Clip-Mp3-Sport-With-TF-Card-Slot-Suppot-Up-To-8GB-New-Free.jpg
+			http://i01.i.aliimg.com/wsphoto/v0/32269721105_2/Mini-Mirror-Surface-Clip-Mp3-Sport-With-TF-Card-Slot-Suppot-Up-To-8GB-New-Free.jpg
+			http://i01.i.aliimg.com/wsphoto/v0/32269721105_3/Mini-Mirror-Surface-Clip-Mp3-Sport-With-TF-Card-Slot-Suppot-Up-To-8GB-New-Free.jpg
+		}
+		prices = {
+			USD = 1.32
+			RUR = 96.36
+		}
+		commission_rate = 3.75
+	}
+</pre>
+	<h2>Использование в PHP. Класс clEPNAPIAccess</h2>
+	<p>Для упрощения разработки проектов на PHP, использующих EPN API, предоставляется готовый класс clEPNAPIAccess, который предоставляет простой, но функциональный интерфейс для работы с ePN API.</p>
+	<p>Для начала необходимо создать экземпляр класс clEPNAPIAccess. В качестве параметров конструктору передаётся API Key и DeepLink Hash. Пример кода:</p>
+<pre>
+	$epn = new clEPNAPIAccess($your_api_key, $your_deep_link_hash);
+</pre>
+	<p>Класс предоставляет следующие методы:</p>
+	<ul>
+		<li><b>AddRequestCategoriesList($name, $lang = 'en')</b> - добавление запроса на получение списка категорий.</li>
+		<li><b>AddRequestGetOfferInfo($name, $id, $lang = 'en', $currency = 'USD')</b> - добавление запроса на получение информации о товаре.</li>
+		<li><b>AddRequestSearch($name, $options = array())</b> - добавление запроса на поиск.</li>
+		<li><b>AddRequestCountForSearch($name, $options = array())</b> - добавление запроса на получение количества товаров в категориях.</li>
+		<li><b>AddRequestCurrenciesList()</b> - получение списка поддерживаемых валют.</li>
+		<li><b>AddRequestGetTopMonthly($name, $lang = 'en', $currency = 'USD', $orderby = 'sales', $category = '')</b> - получение топовых товаров.</li>
+		<li><b>RunRequests()</b> - выполнение запросов.</li>
+		<li><b>LastError()</b> - сообщение об ошибке, возникшей при последнем выполнении RunRequests.</li>
+		<li><b>LastErrorType()</b> - тип последней ошибки при выполнении RunRequests.</li>
+		<li><b>GetRequestResult($name)</b> - получение результата выполнения запроса.</li>
+	</ul>
+	<h2>Методы clEPNAPIAccess. AddRequestCategoriesList:</h2>
+	<p>Метод &quot;AddRequestCategoriesList&quot; имеет два параметра: уникальное имя запроса и код языка. Последний параметр не является обязательным. Пример использования:</p>
+<pre>
+	// Список категорий на английском языке
+	$epn->AddRequestCategoriesList('categories_list_1');
+	
+	// Список категорий на русском языке
+	$epn->AddRequestCategoriesList('categories_list_2', 'ru');
+</pre>
+	<h2>Методы clEPNAPIAccess. AddRequestGetOfferInfo:</h2>
+	<p>Метод &quot;AddRequestGetOfferInfo&quot; предназначен для получения подробной информации о товаре. Принимает четыре параметра: уникальное имя запроса, идентификатор товара, код языка и наименование валюты (последний два - необязательные параметры). Пример использования:</p>
+<pre>
+	$epn->AddRequestGetOfferInfo('offer_info_en', 2164021);
+	$epn->AddRequestGetOfferInfo('offer_info_ru', 2164021, 'ru', 'RUR');
+</pre>
+	<h2>Методы clEPNAPIAccess. AddRequestSearch:</h2>
+	<p>Метод &quot;AddRequestSearch&quot; является самым сложным и функциональным. Принимает два параметра: уникальный идентификатор запроса и массив параметров поиска.</p>
+	<p>Массив поисковых опций описан выше (см. описание параметров action=search). Пример использования:</p>
+<pre>
+	// Запрос десяти случайных товаров в категориях 5, 6 и 7
+	$epn->AddRequestSearch(
+		'random_goods_1',
+		array(
+			'query' => '',
+			'orderby => 'rand',
+			'limit' => 10,
+			'offset' => 0,
+			'category' => '5,6,7'
+		)
+	);
+</pre>
+	<h2>Методы clEPNAPIAccess. AddRequestCountForSearch:</h2>
+	<p>Список параметров полностью идентичен AddRequestSearch с небольшим отличием в списке опций (см описание action=count_for_categories). Пример использования:</p>
+<pre>
+	// Количество товаров в категориях, соответствующих запросу 'phone'
+	$epn->AddRequestCountForSearch(
+		'category_count_1',
+		array(
+			'query' => 'phone',
+			'orderby => '',
+		)
+	);
+</pre>
+	<h2>Методы clEPNAPIAccess. AddRequestCurrenciesList:</h2>
+	<p>Самый простой метод. Имеет только один параметр: уникальное имя запроса. Пример использования:</p>
+<pre>
+	// Получение списка валют
+	$epn->AddRequestCurrenciesList('currency_list_1');
+	
+</pre>
+	<h2>Методы clEPNAPIAccess. AddRequestGetTopMonthly:</h2>
+	<p></p>
+<pre>
+	// Получение самых продаваемых товаров с описанием на русском языке и ценой в рублях
+	$epn->AddRequestGetTopMonthly('top_sales_1', 'ru', 'RUR', 'sales');
+	
+</pre>
+	<h2>Методы clEPNAPIAccess. RunRequests:</h2>
+	<p>Метод &quot;RunRequests&quot; не содержит параметров, но именно он отправляет все запросы к серверу API и обрабатывает отклик. Метод возвращает TRUE в случае успешного ответа от API и FALSE если что-то пошло не так. Пример использования:</p>
+<pre>
+	if ($epn->RunRequests()) {
+		print &quot;Данные получены\n&quot;;
+	}
+	else {
+		print &quot;Произошла ошибка\n&quot;;
+	}
+</pre>
+	<h2>Методы clEPNAPIAccess. LastError:</h2>
+	<p>Метод &quot;LastError&quot; позволяет получить описание ошибки, возникшей при последнем вызове RunRequests. Если последний вызов RunRequests был завершён успешно то вместо сообщения об ошибке будет пустая строка. Пример использования:</p>
+<pre>
+	if (!$epn->RunRequests()) {
+		print $epn->LastError() . &quot;\n&quot;;
+	}
+</pre>
+	<h2>Методы clEPNAPIAccess. LastErrorType</h2>
+	<p>Метод &quot;LastErrorType&quot; позволяет получить тип последней ошибки, возникшей при последем вызове RunRequests. Пример вызова:</p>
+<pre>
+	$result_type = $epn->LastErrorType();
+	if ($result_type == 'none') {
+		print &quot;Всё хорошо\n&quot;
+	}
+	elseif ($result_type == 'network') {
+		print &quot;Сетевая проблема\n&quot;
+	}
+	elseif ($result_type == 'data') {
+		print &quot;Не удалось разобрать ответ сервера\n&quot;
+	}
+	else {
+		print &quot;Что-то непонятное. Такого быть не должно\n&quot;
+	}
+</pre>
+	<h2>Методы clEPNAPIAccess. GetRequestResult:</h2>
+	<p>Метод &quot;GetRequestResult&quot; используется при разборе отклика от API. Метод принимает на вход уникальное имя запроса и возвращает ответ на запрос, либо FALSE если по какой-то причине этот запрос не был обработан. Пример использования:</p>
+<pre>
+	// получение списка категорий по имени блока 'categories_list_1'
+	$categories = array();
+	if ($categories_tmp = $epn->GetRequestResult('categories_list_1') &amp;&amp; isset($categories_tmp['categories']) {
+		$categories = $categories_tmp['categories'];
+	}
+</pre>
+	<h2>Пример использования API</h2>
+<pre>
+	// Инициализируем переменные
+	$categories = array();
+	$offers = array();
+	$total_offers = array();
+	// Создаём объект
+	$epn = new clEPNAPIAccess($api_key, $deep_link_hash);
+	// Добавляем запрос на получение списка категорий
+	$epn->AddRequestCategoriesList('categories_list_1');
+	// Добавляем запрос на поиск первых двадцати товаров по запросу &quot;phone&quot;
+	$epn->AddRequestSearch(
+			'search_1',
+			array(
+				'query' => 'phone',
+				'limit' => 20,
+				'offset' => 0
+			)
+		);
+	// Добавляем запрос на получение количества товаров, соответствующих запросу &quot;phone&quot; в категориях
+	$epn->AddRequestCountForSearch(
+			'search_count_1',
+			array(
+				'query' => 'phone',
+			)
+		);
+	// Пытаемся выполнить запрос
+	if ($epn->RunRequests()) {
+		// Извлекаем список категорий
+		if (($categories_tmp = $epn->GetRequestResult('categories_list_1')) &amp;&amp; isset($categories_tmp['categories'])) {
+			$categories = $categories_tmp['categories'];
+		}
+		// Извлекаем список товаров
+		if (($offers_tmp = $epn->GetRequestResult('search_1')) &amp;&amp; isset($offers_tmp['offers'])) {
+			$offers = $offers_tmp['offers'];
+			$total_offers = $offers_tmp['total_found'];
+		}
+		// Извлекаем количество товаров по категориям
+		if (($search_count_hash_tmp = $epn->GetRequestResult('search_count_1')) &amp;&amp; isset($search_count_hash_tmp['count'])) {
+			$search_count_hash = $search_count_hash_tmp['count'];
+		}
+	}
+	// Если что-то пошло не так
+	else {
+		print $epn->LastError() . &quot;\n&quot;
+	}
+	// Отображаем список категорий
+	print_r($categories);
+	// Отображаем найденные товары
+	print_r($offers);
+	// Отображем количество товаров по категориям
+	print_r($search_count_hash);
+	
+</pre>
+<h1>Список изменений</h1>
+<ul>
+	<li>2016.03.06:<br />
+		<ul>
+			<li>Добавлен метод LastErrorType.</li>
+		</ul>
+	</li>
+	<li>2016.01.11:<br />
+		<ul>
+			<li>Дополнительные поля в ответе на offer_info;</li>
+			<li>Возможность получать цену сразу в нескольких валютах (массив &quot;prices&quot;). Для совместимости со старыми инсталляциями оставлены поля &quot;price&quot; и &quot;currency&quot;;</li>
+		</ul>
+	</li>
+	<li>2015.10.26:<br />
+		<ul>
+			<li>Во всех методах прекращена поддержка параметров &quot;rate_min&quot; и &quot;rate_max&quot;;</li>
+		</ul>
+	</li>
+	<li>2015.08.04:<br />
+		<ul>
+			<li>Добавлено описание запроса top_monthly и связанных с ним методов;</li>
+		</ul>
+	</li>
+	<li>2015.05.19:<br />
+		<ul>
+			<li>Дополнительные поля в описание товаров: &quot;store_id&quot; - идентификатор продавца и &quot;store_title&quot; - название продавца;</li>
+			<li>Дополнительный фильтр для поиска: &quot;store&quot;</li>
+		</ul>
+	</li>
+	<li>2015.04.21:<br />
+		<ul>
+			<li>Дополнительное поле в описание товаров: &quot;commission_rate&quot; - комиссия вебмастера (в процентах);</li>
+		</ul>
+	</li>
+	<li>2015.03.22:<br />
+		<ul>
+			<li>Новый вариант сортировки: &quot;orders_count&quot; (количество заказов за последние 30 дней продаж);</li>
+			<li>Дополнительное поле в описание товаров: &quot;all_images&quot; - массив, содержащий все (включая основную) фотографии товара;</li>
+		</ul>
+	</li>
+	<li>2015.03.10:<br />
+		<ul>
+			<li>&quot;пустые&quot; запросы теперь не отсылаются на сервер;</li>
+		</ul>
+	</li>
+	<li>2015.02.20:<br />
+		<ul>
+			<li>Добавлена возможность выбора валюты (параметр currency);</li>
+			<li>Добавлено описание запроса list_currencies и связанных с ним методов;</li>
+			<li>Исправлены замеченные ошибки;</li>
+		</ul>
+	</li>
+	<li>2015.02.06:<br />
+		<ul>
+			<li>Добавлена возможность указания языка (параметр lang).</li>
+		</ul>
+	</li>
+</ul>
+</div>
+</body>
+</html>
